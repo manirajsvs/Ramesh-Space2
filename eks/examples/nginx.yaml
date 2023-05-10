@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      volumes:
+        - name: my-secret-volume
+          secret:
+            secretName: my-app-secret
+      containers:
+        - name: nginx
+          image: nginx:latest
+          ports:
+            - containerPort: 80
+          env:
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: my-app-secret
+                  key: db-host
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: my-app-secret
+                  key: db-user
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: my-app-secret
+                  key: db-password

@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: my-job
+spec:
+  template:
+    spec:
+      containers:
+        - name: my-container
+          image: busybox
+          command: ['sh', '-c', 'echo $(cat /mnt/my-secret/my-key)']
+          volumeMounts:
+            - name: my-secret-volume
+              mountPath: /mnt/my-secret
+      volumes:
+        - name: my-secret-volume
+          secret:
+            secretName: my-app-secret
+      restartPolicy: Never
+  backoffLimit: 4
+
