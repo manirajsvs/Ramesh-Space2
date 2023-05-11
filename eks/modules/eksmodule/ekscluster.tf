@@ -105,7 +105,7 @@ resource "aws_security_group" "example" {
 resource "kubernetes_deployment" "tfnexus" {
   metadata {
     name = "terraformnexus"
-    namespace = "kube-system"
+    namespace = "default"
     labels = {
       app = "nexus"
     }
@@ -163,6 +163,9 @@ resource "kubernetes_deployment" "tfnexus" {
       }
     }
   }
+  timeouts {
+    create = "5m"
+  }
 }
 
 
@@ -170,7 +173,7 @@ resource "kubernetes_deployment" "tfnexus" {
 resource "kubernetes_service" "nexus" {
   metadata {
     name = "nexus"
-    namespace = "kube-system"
+    namespace = "default"
   }
 
   spec {
@@ -249,8 +252,6 @@ resource "kubernetes_config_map_v1_data" "aws_auth" {
   depends_on = [aws_eks_cluster.mycluster, kubernetes_config_map.aws_auth]                                                 
 }
 
-
-
 data "aws_security_group" "mysg" {
   id = aws_security_group.create_sg.id
 }
@@ -259,47 +260,3 @@ output "cluster_status" {
   value = aws_eks_cluster.mycluster.status
 }
 
-######### Deleting default coredns ###########
-/*
-resource "null_resource" "kubectl" {
-  provisioner "local-exec" {
-    command = "aws eks --region us-east-1 update-kubeconfig --name ${aws_eks_cluster.mycluster.id}"
-
-}
-depends_on = [aws_eks_cluster.mycluster]#, kubernetes_config_map.aws_auth, aws_eks_fargate_profile.fargate-profile, kubernetes_config_map_v1_data.aws_auth  ]
-}
-
-resource "null_resource" "kubectl1" {
-  provisioner "local-exec" {
-    command = "kubectl delete deployment coredns -n kube-system"
-}
-depends_on = [aws_eks_cluster.mycluster, null_resource.kubectl]
-}
-*/
-#########Installing Kubernetes addons
-
-resource "aws_eks_addon" "this" {
-  # Not supported on outposts
-  for_each = { for k, v in var.cluster_addons : k => v if var.create && !var.create_outposts_local_cluster }
-
-  cluster_name = var.cluster_name
-  addon_name   = try(each.value.name, each.key)
-  addon_version            = try(each.value.addon_version, null)
-  configuration_values     = try(each.value.configuration_values, null)
-  preserve                 = try(each.value.preserve, null)
-  resolve_conflicts        = try(each.value.resolve_conflicts, "OVERWRITE")
-  service_account_role_arn = try(each.value.service_account_role_arn, null)
-  #create_timeout = "30m"
-
-  # timeouts {
-  #   create = try(each.value.timeouts.create, var.cluster_addons_timeouts.create, null)
-  #   update = try(each.value.timeouts.update, var.cluster_addons_timeouts.update, null)
-  #   delete = try(each.value.timeouts.delete, var.cluster_addons_timeouts.delete, null)
-  # }
-
-  depends_on = [ aws_eks_cluster.mycluster, aws_eks_fargate_profile.fargate-profile /*, null_resource.kubectl, null_resource.kubectl1*/ ]
-  
-  timeouts {
-  create = "5m"
-}
-}

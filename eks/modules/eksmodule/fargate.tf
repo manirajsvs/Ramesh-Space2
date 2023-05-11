@@ -28,6 +28,16 @@ resource "aws_eks_fargate_profile" "fargate-profile" {
     }
   }
 }
+
+# resource "null_resource" "patch_coredns" {
+#  # depends_on = [module.eks_cluster]
+#   provisioner "local-exec" {
+#     command = <<-EOT
+#       kubectl patch deployment coredns -n kube-system --type=json -p="[{'op': 'remove', 'path': '/spec/template/metadata/annotations', 'value': 'eks.amazonaws.com/compute-type'}]"
+#     EOT
+#   }
+# }
+
 /*
 depends_on = [
     aws_eks_cluster.output.cluster_status,
